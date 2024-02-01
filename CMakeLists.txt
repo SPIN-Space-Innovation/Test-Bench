@@ -27,7 +27,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/external/pico-sdk.cmake)
 # initialize the SDK based on PICO_SDK_PATH
 include(pico_sdk_import.cmake)
 
-project(template)
+project(TestBench)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED true)
@@ -40,12 +40,12 @@ pico_sdk_init()
 
 include("${CMAKE_CURRENT_LIST_DIR}/src/CMakeLists.txt")
 
-add_executable(template ${${PROJECT_NAME}_SRC})
+add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SRC})
 
 include(${CMAKE_CURRENT_LIST_DIR}/external/FreeRTOS.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/external/etl.cmake)
 
-target_link_libraries(template
+target_link_libraries(${PROJECT_NAME}
     hardware_adc 
     hardware_base
     hardware_claim
@@ -97,7 +97,7 @@ target_link_libraries(template
     etl::etl
     FreeRTOS)
 
-pico_add_extra_outputs(template)
+pico_add_extra_outputs(${PROJECT_NAME})
 
-pico_enable_stdio_usb(template 0)
-pico_enable_stdio_uart(template 1)
+pico_enable_stdio_usb(${PROJECT_NAME} 0)
+pico_enable_stdio_uart(${PROJECT_NAME} 1)

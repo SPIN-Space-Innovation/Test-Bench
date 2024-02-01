@@ -1,4 +1,4 @@
-# Embedded Template
+# Test Bench
 
 ## Building the Project
 Before you can run the application, you'll need to build the project. Follow the steps below:
@@ -11,8 +11,8 @@ Make sure you have the following prerequisites installed on your machine:
 
 ### Clone the Repository
 ```bash
-git clone https://github.com/SPIN-Space-Innovation/Embedded-Template.git
-cd Embedded-Template
+git clone https://github.com/SPIN-Space-Innovation/Test-Bench.git
+cd Test-Bench
 ```
 
 ### Generate the project buildsystem
@@ -28,4 +28,4 @@ cmake --build build -j ${No of build jobs}
 ```
 
 ## License
-Embedded Template is licensed under the [MIT license](LICENSE).
+Test Bench is licensed under the [MIT license](LICENSE).
