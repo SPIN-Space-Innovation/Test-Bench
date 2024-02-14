@@ -52,6 +52,4 @@ int main() {
         else
             fprintf(stderr, "Failed to print to data logger.\n");
     }
-
-    return 0;
 }
