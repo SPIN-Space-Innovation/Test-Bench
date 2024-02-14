@@ -37,8 +37,10 @@ int main() {
 
     stdio_init_all();
 
-    if (!setupDataLogger(DATA_LOGGER_UART))
+    if (!setupDataLogger(DATA_LOGGER_UART)) {
         fprintf(stderr, "Communication with data logger was unsuccessful.\n");
+        while (true) asm("");
+    }
 
     int i = 1;
 
