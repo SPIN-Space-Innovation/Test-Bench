@@ -22,57 +22,34 @@
  * SOFTWARE.
  */
 
-#include "main.h"
-
-#include <stdbool.h>
 #include <stdio.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include <pico/stdlib.h>
 
-#include <FreeRTOS.h>
-#include <task.h>
+#include "main.h"
+#include "datalogger.h"
 
-#include "FreeRTOSConfig.h"
+#define DATA_LOGGER_UART 1
 
-void vBlinkTask(void *)
-{
-    while(true)
-    {
-        gpio_put(PICO_DEFAULT_LED_PIN, 1);
-        vTaskDelay(250);
+int main() {
 
-        gpio_put(PICO_DEFAULT_LED_PIN, 0);
-        vTaskDelay(250);
-    }
-}
-
-void vHelloWorldTask(void *)
-{
-    while(true)
-    {
-        printf("Hello world\n");
-        vTaskDelay(1000);
-    }
-}
-int main()
-{
-    // Initialize the stdio library
     stdio_init_all();
 
-    // Initialize the GPIO
-    gpio_init(PICO_DEFAULT_LED_PIN);
+    if (!setupDataLogger(DATA_LOGGER_UART))
+        fprintf(stderr, "Communication with data logger was unsuccessful.\n");
 
-    // Set the LED pin as an output device
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    int i = 1;
 
-    // Create background blink task
-    BaseType_t blinkTask = xTaskCreate(vBlinkTask, "Blink Task", 128, NULL, 1, NULL);
+    while (true) {
 
-    // Create background hello world task
-    BaseType_t helloWorldTask = xTaskCreate(vHelloWorldTask, "Hello World Task", 128, NULL, 1, NULL);
+        if (printDataLogger(DATA_LOGGER_UART, "Hello\n", 7))
+            if (i++ % 20 == 0) nextFile(DATA_LOGGER_UART);
+            
+        else
+            fprintf(stderr, "Failed to print to data logger.\n");
+    }
 
-    // Start background tasks
-    vTaskStartScheduler();
-
-    while (true);
+    return 0;
 }
