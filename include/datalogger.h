@@ -29,7 +29,7 @@ using uart_t = decltype(uart0);
 class DataLogger {
 
     private:
-        const uint8_t savePin = 7;
+        const uint8_t savePin = 10;
 
         const int startupDelay = 2000;
         const int resetDelay = 500;

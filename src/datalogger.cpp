@@ -91,8 +91,8 @@ void DataLogger::save() {
 DataLogger::~DataLogger() {
 
     save();
-        
+    
     uart_deinit(uart);
-        
+    
     printf("DeInitialized UART %hhu for communication with data logger\n", uartIDNum);
 }
