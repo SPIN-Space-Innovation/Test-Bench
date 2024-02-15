@@ -24,6 +24,28 @@
 
 #pragma once
 
-bool setupDataLogger(uint8_t uartIDNum);
-bool printDataLogger(uint8_t uartIDNum, const char *src, size_t len);
-void nextFile(uint8_t uartIDNum);
+using uart_t = decltype(uart0);
+
+class DataLogger {
+
+    private:
+        const uint8_t savePin = 7;
+
+        const int startupDelay = 2000;
+        const int resetDelay = 500;
+
+        uart_t uart;
+
+        uint8_t uartIDNum;
+
+
+    public:
+        DataLogger(uint8_t uartIDNum, uart_t uart);
+        static DataLogger* getUART(uint8_t uartIDNum, int baudrate);
+
+        bool sendData(const char *src, size_t len);
+
+        void save();
+
+        ~DataLogger();
+};

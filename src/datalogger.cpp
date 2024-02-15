@@ -24,45 +24,52 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-#include <stdint.h>
 
 #include <pico/stdlib.h>
 
 #include <hardware/uart.h>
 
-#define SAVE_PIN 7
+#include "datalogger.h"
 
-#define STARTUP_DELAY 2000
-#define RESET_DELAY 500
+DataLogger::DataLogger(uint8_t uartIDNum, uart_t uart) {
 
-bool setupDataLogger(uint8_t uartIDNum) {
+    this->uartIDNum = uartIDNum;
+    this->uart = uart;
 
-    if (uartIDNum > 1) return false;
-
-    auto uart = (uartIDNum) ? uart1 : uart0;
-
-    if (!uart_is_enabled(uart))
-        uart_init(uart, 115200);
-    
-    if (!uart_is_enabled(uart)) return false;
+    printf("Initialized UART %hhu for communication with data logger\n", uartIDNum);
 
     uart_set_fifo_enabled(uart, true);
     uart_set_format(uart, 8, 1, UART_PARITY_NONE);
     uart_set_hw_flow(uart, false, false);
 
-    sleep_ms(STARTUP_DELAY);
-    gpio_init(SAVE_PIN);
-    gpio_set_dir(SAVE_PIN, GPIO_OUT);
-    gpio_put(SAVE_PIN, 1);
+    sleep_ms(startupDelay);
 
-    return true;
+    gpio_init(savePin);
+    gpio_set_dir(savePin, GPIO_OUT);
+    gpio_put(savePin, 1);
 }
 
-bool printDataLogger(uint8_t uartIDNum, const char *src, size_t len) {
+DataLogger* DataLogger::getUART(uint8_t uartIDNum, int baudrate) {
 
-    if (uartIDNum > 1) return false;
+    if (uartIDNum > 1) {
+        fprintf(stderr, "UART %hhu does not exist\n", uartIDNum);
+        return nullptr;
+    }
 
-    auto uart = (uartIDNum) ? uart1 : uart0;
+    uart_t uart = (uartIDNum) ? uart1 : uart0;
+
+    if (!uart_is_enabled(uart))
+        uart_init(uart, baudrate);
+
+    if (!uart_is_enabled(uart)) {
+        fprintf(stderr, "Failed to initialize UART %hhu\n", uartIDNum);
+        return nullptr;
+    }
+
+    return new DataLogger(uartIDNum, uart);
+}
+
+bool DataLogger::sendData(const char *src, size_t len) {
 
     if (!uart_is_enabled(uart)) return false;
 
@@ -74,14 +81,18 @@ bool printDataLogger(uint8_t uartIDNum, const char *src, size_t len) {
     return true;
 }
 
-void nextFile(uint8_t uartIDNum) {
+void DataLogger::save() {
+    
+    gpio_put(savePin, 0);
+    sleep_ms(resetDelay);
+    gpio_put(savePin, 1);
+}
 
-    if (uartIDNum > 1) return;
+DataLogger::~DataLogger() {
 
-    auto uart = (uartIDNum) ? uart1 : uart0;
-
-    gpio_put(SAVE_PIN, 0);
-    sleep_ms(RESET_DELAY);
-    gpio_put(SAVE_PIN, 1);
-    sleep_ms(RESET_DELAY / 2);
+    save();
+        
+    uart_deinit(uart);
+        
+    printf("DeInitialized UART %hhu for communication with data logger\n", uartIDNum);
 }

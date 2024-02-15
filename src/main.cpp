@@ -24,7 +24,6 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-#include <stdint.h>
 
 #include <pico/stdlib.h>
 
@@ -32,22 +31,25 @@
 #include "datalogger.h"
 
 #define DATA_LOGGER_UART 1
+#define DATA_LOGGER_BAUDRATE 115200
 
 int main() {
 
     stdio_init_all();
 
-    if (!setupDataLogger(DATA_LOGGER_UART)) {
-        fprintf(stderr, "Communication with data logger was unsuccessful.\n");
-        while (true) asm("");
-    }
+    DataLogger *logger = DataLogger::getUART(DATA_LOGGER_UART, DATA_LOGGER_BAUDRATE);
+
+    if (logger == nullptr) while(true) asm("");
 
     int i = 1;
 
     while (true) {
 
-        if (printDataLogger(DATA_LOGGER_UART, "Hello\n", 7))
-            if (i++ % 20 == 0) nextFile(DATA_LOGGER_UART);
+        if (logger->sendData("Hello\n", 7))
+            if (i++ == 500) {
+                logger->save();
+                i = 0;
+            }
             
         else
             fprintf(stderr, "Failed to print to data logger.\n");
