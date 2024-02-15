@@ -38,9 +38,9 @@ class DataLogger {
 
         uint8_t uartIDNum;
 
+        DataLogger(uint8_t uartIDNum, uart_t uart);
 
     public:
-        DataLogger(uint8_t uartIDNum, uart_t uart);
         static DataLogger* getUART(uint8_t uartIDNum, int baudrate);
 
         bool sendData(const char *src, size_t len);
