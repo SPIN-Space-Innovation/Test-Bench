@@ -32,12 +32,15 @@
 
 #define DATA_LOGGER_UART 1
 #define DATA_LOGGER_BAUDRATE 115200
+#define DATA_LOGGER_TX_PIN 11
+#define DATA_LOGGER_RX_PIN 12
+#define DATA_LOGGER_SAVE_PIN 10
 
 int main() {
 
     stdio_init_all();
 
-    DataLogger *logger = DataLogger::getUART(DATA_LOGGER_UART, DATA_LOGGER_BAUDRATE);
+    DataLogger *logger = DataLogger::getUART(DATA_LOGGER_UART, DATA_LOGGER_BAUDRATE, DATA_LOGGER_TX_PIN, DATA_LOGGER_RX_PIN, DATA_LOGGER_SAVE_PIN);
 
     if (logger == nullptr) while(true) asm("");
 
@@ -45,13 +48,14 @@ int main() {
 
     while (true) {
 
-        if (logger->sendData("Hello\n", 7))
+        if (logger->sendData("Hello\n", 6)){
+
             if (i++ == 500) {
+
                 logger->save();
                 i = 0;
             }
-            
-        else
-            fprintf(stderr, "Failed to print to data logger.\n");
+        }
+        else fprintf(stderr, "Failed to print to data logger.\n");
     }
 }

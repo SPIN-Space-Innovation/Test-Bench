@@ -31,16 +31,21 @@
 
 #include "datalogger.h"
 
-DataLogger::DataLogger(uint8_t uartIDNum, uart_t uart) {
+DataLogger::DataLogger(uart_t uart, uint8_t txPin, uint8_t rxPin, uint8_t savePin) {
 
-    this->uartIDNum = uartIDNum;
     this->uart = uart;
+    this->txPin = txPin;
+    this->rxPin = rxPin;
+    this->savePin = savePin;
 
-    printf("Initialized UART %hhu for communication with data logger\n", uartIDNum);
+    printf("Initialized UART %u for communication with data logger\n", uart_get_index(uart));
 
-    uart_set_fifo_enabled(uart, true);
-    uart_set_format(uart, 8, 1, UART_PARITY_NONE);
+    gpio_set_function(txPin, GPIO_FUNC_UART);
+    gpio_set_function(rxPin, GPIO_FUNC_UART);
+
     uart_set_hw_flow(uart, false, false);
+    uart_set_format(uart, 8, 1, UART_PARITY_NONE);
+    uart_set_fifo_enabled(uart, true);
 
     sleep_ms(startupDelay);
 
@@ -49,7 +54,7 @@ DataLogger::DataLogger(uint8_t uartIDNum, uart_t uart) {
     gpio_put(savePin, 1);
 }
 
-DataLogger* DataLogger::getUART(uint8_t uartIDNum, int baudrate) {
+DataLogger* DataLogger::getUART(uint8_t uartIDNum, int baudrate, uint8_t txPin, uint8_t rxPin, uint8_t savePin) {
 
     if (uartIDNum > 1) {
         fprintf(stderr, "UART %hhu does not exist\n", uartIDNum);
@@ -66,7 +71,7 @@ DataLogger* DataLogger::getUART(uint8_t uartIDNum, int baudrate) {
         return nullptr;
     }
 
-    return new DataLogger(uartIDNum, uart);
+    return new DataLogger(uart, txPin, rxPin, savePin);
 }
 
 bool DataLogger::sendData(const char *src, size_t len) {
@@ -92,7 +97,7 @@ DataLogger::~DataLogger() {
 
     save();
     
+    printf("DeInitialized UART %u for communication with data logger\n", uart_get_index(uart));
+
     uart_deinit(uart);
-    
-    printf("DeInitialized UART %hhu for communication with data logger\n", uartIDNum);
 }

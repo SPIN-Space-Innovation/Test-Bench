@@ -24,24 +24,24 @@
 
 #pragma once
 
-using uart_t = decltype(uart0);
+using uart_t = uart_inst_t *;
 
 class DataLogger {
 
     private:
-        const uint8_t savePin = 10;
-
         const int startupDelay = 2000;
         const int resetDelay = 500;
 
         uart_t uart;
 
-        uint8_t uartIDNum;
+        uint8_t txPin;
+        uint8_t rxPin;
+        uint8_t savePin;
 
-        DataLogger(uint8_t uartIDNum, uart_t uart);
+        DataLogger(uart_t uart, uint8_t txPin, uint8_t rxPin, uint8_t savePin);
 
     public:
-        static DataLogger* getUART(uint8_t uartIDNum, int baudrate);
+        static DataLogger* getUART(uint8_t uartIDNum, int baudrate, uint8_t txPin, uint8_t rxPin, uint8_t savePin);
 
         bool sendData(const char *src, size_t len);
 
