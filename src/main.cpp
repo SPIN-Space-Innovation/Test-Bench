@@ -30,32 +30,53 @@
 #include "main.h"
 #include "datalogger.h"
 
-#define DATA_LOGGER_UART 1
 #define DATA_LOGGER_BAUDRATE 115200
-#define DATA_LOGGER_TX_PIN 11
-#define DATA_LOGGER_RX_PIN 12
-#define DATA_LOGGER_SAVE_PIN 10
+#define DATA_LOGGER_TX_PIN 8
+#define DATA_LOGGER_RX_PIN 9
+#define DATA_LOGGER_SAVE_PIN 7
+
+#define BUFFER_SIZE 100000
+
+// TODO: The output to the data logger appears to have some very minor data losses (2 characters in a million or something)
 
 int main() {
 
     stdio_init_all();
 
-    DataLogger *logger = DataLogger::getUART(DATA_LOGGER_UART, DATA_LOGGER_BAUDRATE, DATA_LOGGER_TX_PIN, DATA_LOGGER_RX_PIN, DATA_LOGGER_SAVE_PIN);
+    // Create logger instance
+    DataLogger logger(DATA_LOGGER_BAUDRATE, DATA_LOGGER_TX_PIN, DATA_LOGGER_RX_PIN, DATA_LOGGER_SAVE_PIN);
 
-    if (logger == nullptr) while(true) asm("");
+    // Buffer for temporary data storage before sending to logger
+    char *buffer = new char[BUFFER_SIZE];
+    int bufferCounter = 0;
 
-    int i = 1;
+    // Counters for sending and saving grouped data
+    int i = 0;
+    int j = 0;
 
     while (true) {
 
-        if (logger->sendData("Hello\n", 6)){
+        // Assign the latest string to a temporary string and get its length
+        char temp[100];
+        int len = snprintf(temp, 100, "Hello %d\n", ++i);
 
-            if (i++ == 500) {
-
-                logger->save();
-                i = 0;
+        // Check if the current string can fit the buffer
+        if (bufferCounter + len > BUFFER_SIZE) {
+            
+            // Send the data to the UART FIFO
+            if (logger.sendData(buffer, bufferCounter)) {
+                
+                // Every 10 times the buffer is sent, all the data will be saved to the corresponding file
+                if (++j % 10 == 0) {
+                    logger.save();
+                }
             }
+
+            // Empty the buffer
+            bufferCounter = 0;
         }
-        else fprintf(stderr, "Failed to print to data logger.\n");
+
+        // Add the string to the buffer
+        bufferCounter += sprintf(buffer + bufferCounter, temp);
     }
 }

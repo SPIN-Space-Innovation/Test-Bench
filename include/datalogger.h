@@ -24,28 +24,44 @@
 
 #pragma once
 
-using uart_t = uart_inst_t *;
-
 class DataLogger {
 
-    private:
-        const int startupDelay = 2000;
-        const int resetDelay = 500;
+private:
 
-        uart_t uart;
+    // Time to wait after startup to avoid data loss
+    const int startupDelay = 2000;
 
-        uint8_t txPin;
-        uint8_t rxPin;
-        uint8_t savePin;
+    // Time to wait during reset
+    const int resetDelay = 500;
 
-        DataLogger(uart_t uart, uint8_t txPin, uint8_t rxPin, uint8_t savePin);
+    // UART peripheral that is used by the datalogger
+    uart_inst_t *uart;
 
-    public:
-        static DataLogger* getUART(uint8_t uartIDNum, int baudrate, uint8_t txPin, uint8_t rxPin, uint8_t savePin);
+    // Baudrate for uart communication with the datalogger
+    int baudrate;
 
-        bool sendData(const char *src, size_t len);
+    // Pins assigned for the datalogger
+    uint8_t savePin;
 
-        void save();
+public:
+    // Constructor
+    DataLogger(const int baudrate, const uint8_t txPin, const uint8_t rxPin, const uint8_t savePin);
 
-        ~DataLogger();
+    // Destructor
+    ~DataLogger();
+
+    // Deletion (at least temporarily) of the rest of the constructors
+    DataLogger(const DataLogger&) = delete;
+    DataLogger(DataLogger&&) noexcept = delete;
+    DataLogger& operator=(const DataLogger&) = delete;
+    DataLogger& operator= (DataLogger&&) noexcept = delete;
+
+    // Send data to data logger
+    bool sendData(const char *src, const size_t len);
+    
+    // Reset the save pin to save the data and switch file
+    void save();
+
+    // Get UART corresponding to the given tx and rx pins
+    static uart_inst_t *getUART(const uint8_t txPin, const uint8_t rxPin);
 };
