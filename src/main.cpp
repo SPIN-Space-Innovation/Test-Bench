@@ -22,57 +22,61 @@
  * SOFTWARE.
  */
 
-#include "main.h"
-
-#include <stdbool.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include <pico/stdlib.h>
 
-#include <FreeRTOS.h>
-#include <task.h>
+#include "main.h"
+#include "datalogger.h"
 
-#include "FreeRTOSConfig.h"
+#define DATA_LOGGER_BAUDRATE 115200
+#define DATA_LOGGER_TX_PIN 8
+#define DATA_LOGGER_RX_PIN 9
+#define DATA_LOGGER_SAVE_PIN 7
 
-void vBlinkTask(void *)
-{
-    while(true)
-    {
-        gpio_put(PICO_DEFAULT_LED_PIN, 1);
-        vTaskDelay(250);
+#define BUFFER_SIZE 100000
 
-        gpio_put(PICO_DEFAULT_LED_PIN, 0);
-        vTaskDelay(250);
-    }
-}
+// TODO: The output to the data logger appears to have some very minor data losses (2 characters in a million or something)
 
-void vHelloWorldTask(void *)
-{
-    while(true)
-    {
-        printf("Hello world\n");
-        vTaskDelay(1000);
-    }
-}
-int main()
-{
-    // Initialize the stdio library
+int main() {
+
     stdio_init_all();
 
-    // Initialize the GPIO
-    gpio_init(PICO_DEFAULT_LED_PIN);
+    // Create logger instance
+    DataLogger logger(DATA_LOGGER_BAUDRATE, DATA_LOGGER_TX_PIN, DATA_LOGGER_RX_PIN, DATA_LOGGER_SAVE_PIN);
 
-    // Set the LED pin as an output device
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    // Buffer for temporary data storage before sending to logger
+    char *buffer = new char[BUFFER_SIZE];
+    int bufferCounter = 0;
 
-    // Create background blink task
-    BaseType_t blinkTask = xTaskCreate(vBlinkTask, "Blink Task", 128, NULL, 1, NULL);
+    // Counters for sending and saving grouped data
+    int i = 0;
+    int j = 0;
 
-    // Create background hello world task
-    BaseType_t helloWorldTask = xTaskCreate(vHelloWorldTask, "Hello World Task", 128, NULL, 1, NULL);
+    while (true) {
 
-    // Start background tasks
-    vTaskStartScheduler();
+        // Assign the latest string to a temporary string and get its length
+        char temp[100];
+        int len = snprintf(temp, 100, "Hello %d\n", ++i);
 
-    while (true);
+        // Check if the current string can fit the buffer
+        if (bufferCounter + len > BUFFER_SIZE) {
+            
+            // Send the data to the UART FIFO
+            if (logger.sendData(buffer, bufferCounter)) {
+                
+                // Every 10 times the buffer is sent, all the data will be saved to the corresponding file
+                if (++j % 10 == 0) {
+                    logger.save();
+                }
+            }
+
+            // Empty the buffer
+            bufferCounter = 0;
+        }
+
+        // Add the string to the buffer
+        bufferCounter += sprintf(buffer + bufferCounter, temp);
+    }
 }
