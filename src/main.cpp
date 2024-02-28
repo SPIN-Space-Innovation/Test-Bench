@@ -71,6 +71,7 @@ int main() {
     int j = 0;
 
     while (true) {
+        int32_t hx711Reading = hx711_get_value(&hx);
 
         // Assign the latest string to a temporary string and get its length
         char temp[100];
