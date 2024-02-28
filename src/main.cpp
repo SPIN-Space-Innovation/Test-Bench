@@ -27,6 +27,8 @@
 
 #include <pico/stdlib.h>
 
+#include "common.h"
+
 #include "main.h"
 #include "datalogger.h"
 
@@ -35,6 +37,9 @@
 #define DATA_LOGGER_RX_PIN 9
 #define DATA_LOGGER_SAVE_PIN 7
 
+#define HX711_CLK_PIN 14
+#define HX711_DATA_PIN 15
+
 #define BUFFER_SIZE 100000
 
 // TODO: The output to the data logger appears to have some very minor data losses (2 characters in a million or something)
@@ -42,6 +47,17 @@
 int main() {
 
     stdio_init_all();
+
+    // Initialize HX711
+    hx711_config_t hxcfg;
+    hx711_get_default_config(&hxcfg);
+    hxcfg.clock_pin = HX711_CLK_PIN;
+    hxcfg.data_pin = HX711_DATA_PIN;
+
+    hx711_t hx;
+    hx711_init(&hx, &hxcfg);
+    hx711_power_up(&hx, hx711_gain_128);
+    hx711_wait_settle(hx711_rate_80);
 
     // Create logger instance
     DataLogger logger(DATA_LOGGER_BAUDRATE, DATA_LOGGER_TX_PIN, DATA_LOGGER_RX_PIN, DATA_LOGGER_SAVE_PIN);
