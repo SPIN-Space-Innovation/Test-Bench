@@ -24,43 +24,30 @@
 
 #pragma once
 
-class DataLogger {
+#include <common.h>
+
+class Packet {
 
 private:
-    // Time to wait after startup to avoid data loss
-    const int startupDelay = 2000;
+    // hx711 instance
+    hx711_t hx;
 
-    // Time to wait during reset
-    const int resetDelay = 500;
+    // Timestamp in microseconds
+    uint64_t timestamp;
 
-    // UART peripheral that is used by the datalogger
-    uart_inst_t *uart;
+    // Output of pressure transmitter
+    int pressureTransmitterOutput;
 
-    // Baudrate for uart communication with the datalogger
-    int baudrate;
-
-    // Pins assigned for the datalogger
-    uint8_t savePin;
+    // Output of loadcell
+    int loadcellOutput;
 
 public:
-    // Constructor
-    DataLogger(const int baudrate, const uint8_t txPin, const uint8_t rxPin, const uint8_t savePin);
+    // Constructor performs setups and initializations necessary
+    Packet(const uint8_t pressureTransmitterPin, const uint8_t hx711dataPin, const uint8_t hx711clockPin);
 
-    // Destructor
-    ~DataLogger();
+    // Refresh the packet, giving it new data
+    void getData();
 
-    // Deletion (at least temporarily) of the rest of the constructors
-    DataLogger(const DataLogger&) = delete;
-    DataLogger(DataLogger&&) noexcept = delete;
-    DataLogger& operator=(const DataLogger&) = delete;
-    DataLogger& operator= (DataLogger&&) noexcept = delete;
-
-    // Send data to data logger
-    bool sendData(const char *src, const size_t len);
-    
-    // Reset the save pin to save the data and switch file
-    void save();
-
-    // Get UART corresponding to the given tx and rx pins
-    static uart_inst_t *getUART(const uint8_t txPin, const uint8_t rxPin);
+    // Produce a string in csv format of the packet's data members and return the length of the string
+    int stringify(char *result);
 };

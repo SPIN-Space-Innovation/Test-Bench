@@ -31,6 +31,8 @@
 
 #include "datalogger.h"
 
+// TODO: Implement copy constructor (we'll see), move constructor and assignment operators
+
 DataLogger::DataLogger(const int baudrate, const uint8_t txPin, const uint8_t rxPin, const uint8_t savePin) : baudrate{baudrate}, savePin{savePin} {
     
     // Check if the given UART is invalid or already used
