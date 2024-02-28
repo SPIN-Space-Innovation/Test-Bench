@@ -44,6 +44,7 @@ add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SRC})
 
 include(${CMAKE_CURRENT_LIST_DIR}/external/FreeRTOS.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/external/etl.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/external/hx711.cmake)
 
 target_link_libraries(${PROJECT_NAME}
     hardware_adc 
@@ -95,6 +96,7 @@ target_link_libraries(${PROJECT_NAME}
     pico_runtime
     pico_stdio
     etl::etl
+    hx711-pico-c
     FreeRTOS)
 
 pico_add_extra_outputs(${PROJECT_NAME})
