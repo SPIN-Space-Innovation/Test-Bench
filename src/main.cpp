@@ -27,9 +27,11 @@
 
 #include <pico/stdlib.h>
 
+#include <hardware/adc.h>
+#include <common.h>
+
 #include "main.h"
 #include "datalogger.h"
-#include "packet.h"
 
 #define DATA_LOGGER_BAUDRATE 115200
 #define DATA_LOGGER_TX_PIN 8
@@ -60,17 +62,40 @@ int main() {
     // Counter for saving grouped data
     int saveCounter = 0;
 
-    // Perform setups and initializations necessary for proper packet creation
-    Packet dataPacket(PRESSURE_TRANSMITTER_PIN, HX711_DATA_PIN, HX711_CLOCK_PIN);
+    // ADC initialization for pressure transmitter
+    adc_init();
+    adc_gpio_init(PRESSURE_TRANSMITTER_PIN);
+
+    // HX711 initialization:
+    hx711_t hx;
+
+    // Set configurations
+    hx711_config_t hxcfg;
+    hx711_get_default_config(&hxcfg);
+
+    // Set data and clock pins
+    hxcfg.data_pin = HX711_DATA_PIN;
+    hxcfg.clock_pin = HX711_CLOCK_PIN;
+
+    // Initialize
+    hx711_init(&hx, &hxcfg);
+
+    // Power up the hx711 and set gain on chip
+    hx711_power_up(&hx, hx711_gain_128);
+
+    // Wait for readings to settle
+    hx711_wait_settle(hx711_rate_80);
 
     while (true) {
 
         // Create a Packet instance
-        dataPacket.getData();
+        uint64_t timestamp = time_us_64();
+        int pressureTransmitterOutput = adc_read();
+        int loadcellOutput = hx711_get_value(&hx);
 
         // Get the string format of the packet
         char packetString[100];
-        int len = dataPacket.stringify(packetString);
+        int len = snprintf(packetString, 100, "%llu,%d,%d\n", timestamp, pressureTransmitterOutput, loadcellOutput);
 
         // If data is not written to the string, terminate program execution
         if (packetString == nullptr) asm("");
