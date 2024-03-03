@@ -27,7 +27,6 @@
 class DataLogger {
 
 private:
-
     // Time to wait after startup to avoid data loss
     const int startupDelay = 2000;
 

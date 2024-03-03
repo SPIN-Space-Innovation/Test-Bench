@@ -22,13 +22,13 @@
  * SOFTWARE.
  */
 
-#include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>
 
 #include <pico/stdlib.h>
 
-#include "common.h"
+#include <hardware/adc.h>
+#include <common.h>
 
 #include "main.h"
 #include "datalogger.h"
@@ -38,38 +38,86 @@
 #define DATA_LOGGER_RX_PIN 9
 #define DATA_LOGGER_SAVE_PIN 7
 
-#define HX711_CLK_PIN 14
-#define HX711_DATA_PIN 15
+#define BUFFER_SIZE 100000
+#define SAVE_REQUIREMENT 10
 
-#define BUFFER_SIZE 256
+#define PRESSURE_TRANSMITTER_PIN 26
+
+#define HX711_DATA_PIN 0
+#define HX711_CLOCK_PIN 1
+
+// TODO: The output to the data logger appears to have some very minor data losses (2 characters in a million or something and some characters on the last line of each file)
 
 int main() {
 
     stdio_init_all();
 
-    // Initialize HX711
-    hx711_config_t hxcfg;
-    hx711_get_default_config(&hxcfg);
-    hxcfg.clock_pin = HX711_CLK_PIN;
-    hxcfg.data_pin = HX711_DATA_PIN;
-
-    hx711_t hx;
-    hx711_init(&hx, &hxcfg);
-    hx711_power_up(&hx, hx711_gain_128);
-    hx711_wait_settle(hx711_rate_80);
-
     // Create logger instance
     DataLogger logger(DATA_LOGGER_BAUDRATE, DATA_LOGGER_TX_PIN, DATA_LOGGER_RX_PIN, DATA_LOGGER_SAVE_PIN);
 
-    logger.sendData("HX711\n", 6);
+    // Buffer for temporary data storage before sending to logger
+    char *buffer = new char[BUFFER_SIZE];
+    int bufferCounter = 0;
+
+    // Counter for saving grouped data
+    int saveCounter = 0;
+
+    // ADC initialization for pressure transmitter
+    adc_init();
+    adc_gpio_init(PRESSURE_TRANSMITTER_PIN);
+
+    // HX711 initialization:
+    hx711_t hx;
+
+    // Set configurations
+    hx711_config_t hxcfg;
+    hx711_get_default_config(&hxcfg);
+
+    // Set data and clock pins
+    hxcfg.data_pin = HX711_DATA_PIN;
+    hxcfg.clock_pin = HX711_CLOCK_PIN;
+
+    // Initialize
+    hx711_init(&hx, &hxcfg);
+
+    // Power up the hx711 and set gain on chip
+    hx711_power_up(&hx, hx711_gain_128);
+
+    // Wait for readings to settle
+    hx711_wait_settle(hx711_rate_80);
 
     while (true) {
-        int32_t hx711Reading = hx711_get_value(&hx);
 
-        char buffer[BUFFER_SIZE];
+        // Create a Packet instance
+        uint64_t timestamp = time_us_64();
+        int pressureTransmitterOutput = adc_read();
+        int loadcellOutput = hx711_get_value(&hx);
 
-        int outputSize = snprintf(buffer, BUFFER_SIZE, "%" PRId32 "\n", hx711Reading);
+        // Get the string format of the packet
+        char packetString[100];
+        int len = snprintf(packetString, 100, "%llu,%d,%d\n", timestamp, pressureTransmitterOutput, loadcellOutput);
 
-        logger.sendData(buffer, outputSize);
+        // If data is not written to the string, terminate program execution
+        if (packetString == nullptr) asm("");
+
+        // Check if the string can fit the buffer
+        if (bufferCounter + len > BUFFER_SIZE) {
+            
+            // Send the data to the UART FIFO
+            if (logger.sendData(buffer, bufferCounter)) {
+                
+                // Every 10 times the buffer is sent, all the data will be saved to the corresponding file
+                if (++saveCounter == SAVE_REQUIREMENT) {
+                    logger.save();
+                    saveCounter = 0;
+                }
+            }
+
+            // Empty the buffer
+            bufferCounter = 0;
+        }
+
+        // Add the string to the buffer
+        bufferCounter += sprintf(buffer + bufferCounter, packetString);
     }
 }
